@@ -72,7 +72,11 @@
           return
         }
         const { email, password } = this
-        this.$store.dispatch('login', { email, password })
+        this.$store.dispatch('loginUser', { email, password })
+          .then(() => {
+            this.$router.push('/')
+          })
+          .catch(() => {})
       }
     }
   }

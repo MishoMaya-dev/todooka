@@ -10,7 +10,7 @@
       <div class="todos-header__customization">
         <button
             class="todos-header__add-todo"
-            @click="$emit('showModal')"
+            @click="$emit('createTodo')"
         >
           <i class="fal fa-plus"/>
         </button>

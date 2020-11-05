@@ -15,21 +15,38 @@
           class="list-item__timer"
           v-if="todo.timer"
         >
-          <i
-            class="fas fa-clock"
-          /> {{ formattedTime }}
+          <div
+            v-if="!isTimeOver"
+          >
+            <i
+              class="fas fa-clock"
+            /> {{ formattedTime }}
+          </div>
+          <div
+            v-else
+            class="list-item__time-over"
+          >
+            Time is over
+          </div>
+        </div>
+        <div
+          v-else-if="todo.done"
+          class="list-item__task-done"
+        >
+          <i class="fas fa-check" style="margin-right: 5px"/>
+          Task is done
         </div>
       </div>
       <div class="list-item__control">
         <button
           class="list-item__edit"
-          @click.stop="isModalVisible = true"
+          @click.stop="$emit('editTodo')"
         >
           <i class="fas fa-pen"></i>
         </button>
         <button
           class="list-item__check"
-          @click.stop="$emit('changeValue')"
+          @click.stop="todoDone"
         >
           <i
             class="fas fa-check"
@@ -38,16 +55,10 @@
         </button>
       </div>
     </div>
-    <EditTodo
-      v-show="isModalVisible"
-      :editableTodo="todo"
-      @closeModal="isModalVisible = false"
-    />
   </div>
 </template>
 
 <script>
-  import EditTodo from './EditTodo';
 
   export default {
     name: 'List',
@@ -58,13 +69,10 @@
       },
     },
     data: () => ({
-      isModalVisible: false,
+      isTimeOver: false,
       time: { h: 0, m: 0, s:0 },
       showedAdditions: true,
     }),
-    components: {
-      EditTodo
-    },
     computed: {
       formattedTime() {
         const {h, m, s} = this.time
@@ -92,7 +100,11 @@
         this.showedAdditions = !this.showedAdditions
       },
       startTimer() {
-        if (this.todo.time - Date.now() < 0) return
+        if (this.todo.time - Date.now() < 0) {
+          this.isTimeOver = true
+          return
+        }
+        this.isTimeOver = false
         const lastTime = this.todo.time - Date.now()
         const hou = Math.floor(lastTime / 36e5)
         const min = Math.floor((lastTime % 36e5) / 6e4)
@@ -108,6 +120,15 @@
           this.timeOutId = null
         }
       },
+      todoDone() {
+        const todoData = {
+          id: this.todo.id,
+          done: !this.todo.done,
+          timer: false,
+          time: 0
+        }
+        this.$emit('changeValue', todoData)
+      }
     }
   }
 </script>
@@ -140,6 +161,10 @@
     &__name {
       font-size: 20px;
       color: #333333;
+      max-width: 150px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     &__description {
       overflow: hidden;
@@ -151,6 +176,7 @@
       width: 100%;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
     &__timer {
       width: 96px;
@@ -166,6 +192,12 @@
     }
     &__edit {
       margin-right: 10px;
+    }
+    &__time-over {
+      color: #ff3f3f;
+    }
+    &__task-done {
+      color: #6DF77A
     }
   }
   .fa-clock {
@@ -193,8 +225,11 @@
       &__container {
         width: auto;
       }
+      &__name {
+        max-width: 250px;
+      }
       &__description {
-        max-width: 417px;
+        max-width: 300px;
         margin-right: 25px;
       }
       &__attributes {

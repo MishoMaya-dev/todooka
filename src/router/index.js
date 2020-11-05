@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
+import AuthGuard from './auth-guard'
 import store from '@/store'
 const ViewTodos = () => import('@/views//ViewTodos');
 const ViewLogIn = () => import('@/views/ViewLogIn');
@@ -20,8 +21,9 @@ const routes = [
   },
   {
     path: '/',
-    meta: { auth: true, layout: 'LayoutMain'},
+    meta: { layout: 'LayoutMain'},
     component: ViewTodos,
+    beforeEnter: AuthGuard
   }
 ]
 
@@ -29,14 +31,5 @@ const router = new VueRouter({
   mode: 'history',
   routes
 })
-
-router.beforeEach((to, from, next) => {
-  return authMiddleware({ to, from, next, store });
-})
-
-function authMiddleware({ to, from, next, store }) {
-  if (to.meta.auth && !store.getters.isAuth) next('/login');
-  next()
-}
 
 export default router

@@ -1,75 +1,140 @@
-class Todo {
-  constructor(marker = '', title, description, timer = false, time = 0, done = false, id = null) {
+import * as firebase from "firebase/app"
+import "firebase/database"
+
+export class Todo {
+  constructor(marker = 'Green.svg', title, description, timer = false, time = 0, userId, id = null, done = false) {
     this.marker = marker
     this.title = title
     this.description = description
     this.timer = timer
     this.time = time
-    this.done = done
+    this.userId = userId
     this.id = id
+    this.done = done
   }
 }
 
-export default  {
+export default {
   state: {
-    todos: [],
+    todos: []
   },
-  
+
   mutations: {
-    setTodos(state, todos) {
-      state.todos = todos
-    },
-    resetTodos(state) {
-      state.todos = []
-    },
-    editDone(state, id) {
+    editDone(state, { id, done, timer, time }) {
       const todo = state.todos.find(t => t.id === id)
-      todo.done = !todo.done
+      todo.timer = timer
+      todo.time = time
+      todo.done = done
     },
-    createTodo(state, newTodo) {
-      state.todos.push(newTodo)
+    createTodo(state, todo) {
+      state.todos.push(todo)
     },
-    editTodo(state, payload) {
-      const todo = state.todos.find(t => t.id === payload.id)
-      todo.marker = payload.marker
-      todo.title = payload.title
-      todo.description = payload.description
-      todo.timer = payload.timer
-      todo.time = payload.time
+    loadTodos(state, todosArr) {
+      state.todos = todosArr
+    },
+    clearTodos(state) {
+      state.todos = [];
+    },
+    updateTodo(state, { marker, title, description, timer, time, id }) {
+      const todo = state.todos.find(t => {
+       return t.id === id
+      })
+      todo.marker = marker
+      todo.title = title
+      todo.description = description
+      todo.timer = timer
+      todo.time = time
     },
     deleteTodo(state, id) {
-      const index = state.todos.findIndex(t => t.id === id)
-      state.todos.splice(index, 1)
+      const todoArr = state.todos.filter(t => t.id !==id)
+      state.todos = todoArr
     }
   },
-  
+
   actions: {
-    editDone({commit}, id) {
-      commit('editDone', id)
+    async editDone({commit}, { id, done, timer, time }) {
+      try {
+        await firebase.database().ref('todos').child(id).update({
+          done,
+          timer,
+          time
+        })
+        commit('editDone', { id, done, timer, time })
+      } catch (e) {
+        throw e
+      }
     },
-    createTodo({commit}, payload) {
-      const marker = payload.marker + '.svg'
-      const id = this.state.length + 1
-      const newTodo = new Todo(
-        '',
-        payload.title,
-        payload.description,
-        payload.timer,
-        payload.time,
-      )
-      commit('createTodo', {...newTodo, id, marker})
+    async createTodo({ commit, getters }, payload) {
+      try {
+        const newTodo = new Todo(
+          payload.marker,
+          payload.title,
+          payload.description,
+          payload.timer,
+          payload.time,
+          getters.users.id,
+        )
+        const todo = await firebase.database().ref('todos').push(newTodo)
+        commit('createTodo', {
+            ...newTodo,
+            id: todo.key
+          })
+      } catch (e) {
+        throw e
+      }
     },
-    editTodo({commit}, payload) {
-      commit('editTodo', payload)
+    async fetchTodos({ commit }) {
+      const todoArr = []
+      try {
+        const fbVal = await firebase.database().ref('todos').once('value')
+        const todos = fbVal.val()
+        Object.keys(todos).forEach(key => {
+          const todo = todos[key]
+          todoArr.push(
+            new Todo(
+              todo.marker,
+              todo.title,
+              todo.description,
+              todo.timer,
+              todo.time,
+              todo.userId,
+              key,
+              todo.done
+            )
+          )
+        })
+        commit('loadTodos', todoArr)
+      } catch (e) {
+        throw e
+      }
     },
-    deleteTodo({commit}, id) {
-      commit('deleteTodo', id)
+    async editTodo({ commit }, { marker, title, description, timer, time, id }) {
+      try {
+        await firebase.database().ref('todos').child(id).update({
+          marker,
+          title,
+          description,
+          timer,
+          time
+        })
+        commit('updateTodo', { marker, title, description, timer, time, id })
+      } catch (e) {
+        throw e
+      }
+    },
+    async deleteTodo({ commit }, id) {
+      try {
+        await firebase.database().ref('todos').child(id).remove()
+        commit('deleteTodo', id)
+      } catch (e) {
+        throw e
+      }
     }
   },
-  
+
   getters: {
-    todos(state) {
-      return state.todos
-    },
+    todos(state, getters) {
+      return getters.users && state.todos.filter(t => t.userId === getters.users.id)
+    }
   }
 }

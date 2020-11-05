@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <loader v-if="pending" class="absolute-center" />
+    <Loader v-if="pending" class="absolute-center" />
     <component v-else :is="layout">
       <router-view/>
     </component>
@@ -27,9 +27,6 @@
         return this.$store.state.pending
       }
     },
-    created() {
-      this.$store.dispatch('getUserByToken')
-    }
   }
 </script>
 

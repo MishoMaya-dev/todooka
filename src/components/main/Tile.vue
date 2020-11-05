@@ -8,26 +8,43 @@
           class="card__timer"
           v-if="todo.timer"
         >
-          <i
-            class="fas fa-clock"
-          /> {{ formattedTime }}
+          <div
+            v-if="!isTimeOver"
+          >
+            <i
+              class="fas fa-clock"
+            /> {{ formattedTime }}
+          </div>
+          <div
+            v-else
+            class="card__time-over"
+          >
+            Time is over
+          </div>
+        </div>
+        <div
+          v-else-if="todo.done"
+          class="card__task-done"
+        >
+          <i class="fas fa-check" style="margin-right: 5px"/>
+          Task is done
         </div>
       </div>
       <div class="card__control">
         <button
           class="card__edit"
-          @click="isModalVisible = true"
+          @click="$emit('editTodo')"
         >
           <i class="fas fa-pen"></i>
         </button>
         <button
           class="card__check"
-          @click="$emit('changeValue')"
+          @click="todoDone"
         >
           <i
             class="fas fa-check"
-            :class="{ 'done' : todo.done }"
-          ></i>
+              :class="{ 'done' : todo.done }"
+          />
         </button>
       </div>
     </div>
@@ -38,31 +55,20 @@
     <div class="card__description">
       <p>{{ todo.description }}</p>
     </div>
-    <transition name="fade">
-      <EditTodo
-        v-show="isModalVisible"
-        :editableTodo="todo"
-        @closeModal="isModalVisible = false"
-      />
-    </transition>
   </div>
 </template>
 
 <script>
-  import EditTodo from "./EditTodo";
 
   export default {
     name: 'Tile',
-    components: {
-      EditTodo
-    },
     props: {
       todo: {
         type: Object
       },
     },
     data: () => ({
-      isModalVisible: false,
+      isTimeOver: false,
       time: { h: 0, m: 0, s: 0 },
       timeOutId: null,
     }),
@@ -71,13 +77,14 @@
         const {h, m, s} = this.time
         const form = (num) => ('' + num).padStart(2, "0")
         return `${form(h)}:${form(m)}:${form(s)}`
-      }
+      },
     },
     watch: {
       'todo.time': function () {
         this.clearTimer()
         this.startTimer()
       },
+
     },
     created() {
       this.startTimer()
@@ -87,7 +94,11 @@
     },
     methods: {
       startTimer() {
-        if (this.todo.time - Date.now() < 0) return
+        if (this.todo.time - Date.now() < 0) {
+          this.isTimeOver = true
+          return
+        }
+        this.isTimeOver = false
         const lastTime = this.todo.time - Date.now()
         const hou = Math.floor(lastTime / 36e5)
         const min = Math.floor((lastTime % 36e5) / 6e4)
@@ -103,6 +114,15 @@
           this.timeOutId = null
         }
       },
+      todoDone() {
+        const todoData = {
+          id: this.todo.id,
+          done: !this.todo.done,
+          timer: false,
+          time: 0
+        }
+        this.$emit('changeValue', todoData)
+      }
     }
   }
 </script>
@@ -135,6 +155,9 @@
     &__time-over {
       color: #ff3f3f;
     }
+    &__task-done {
+      color: #6DF77A
+    }
     &__edit {
       margin-right: 10px;
     }
@@ -147,6 +170,9 @@
       margin-left: 12px;
       font-size: 25px;
       color: #333333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     &__description {
       color: #BABECB;

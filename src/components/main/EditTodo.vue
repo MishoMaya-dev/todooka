@@ -7,8 +7,9 @@
       aria-describedby="modalDescription"
     >
       <div class="modal__header">
-        <h1 class="modal__name">Edit task</h1>
+        <h1 class="modal__name">{{ edit ? 'Edit task' : 'Create task' }}</h1>
         <button
+          v-if="edit"
           class="modal__delete-todo"
           @click="deleteTodo"
         >
@@ -17,7 +18,7 @@
       </div>
       <div class="modal__content">
         <div class="modal__choose">
-          Choose color: {{ marker }}
+          Choose color: {{ markerName }}
           <div class="modal__colors">
             <button
               class="modal__green"
@@ -60,7 +61,9 @@
             type="text"
           />
         </label>
-        <div class="modal__timer">
+        <div class="modal__timer"
+             v-if="todo.done === false"
+        >
           <button
             class="modal__add-timer"
             @click="addTimer"
@@ -103,78 +106,100 @@
             </button>
           </div>
         </div>
-      </div>
+        <div
+          class="modal__task-done"
+          v-else
+        >
+          <i class="fas fa-check" style="margin-right: 5px"/>
+          Task is done
+        </div>
       <div class="modal__footer">
         <button
           class="modal__create"
-          @click="editTodo"
+          :disabled="disableSave"
+          @click="saveTodo"
         >
-          Update
+          {{ edit ? 'Update' : 'Create' }}
         </button>
         <button
           class="modal__close"
-          @click="closeModal"
+          @click="$emit('closeModal')"
         >
           Close
         </button>
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script>
+  import {Todo} from "../../store/todos";
+
   export default {
     name: 'EditTodo',
     props: {
+      edit: {
+        type: Boolean,
+      },
       editableTodo: {
         type: Object,
-        required: true
-      },
+        required: true,
+      }
     },
     data: () => ({
-      todo: {
-        id: '',
-        title: '',
-        description: '',
-        timer: '',
-      },
-      marker: 'Green',
+      todo: new Todo(),
       time: { h: 0, m: 0, s: 0 },
     }),
+    computed: {
+      markerName() {
+        return this.todo.marker.slice(0, -4)
+      },
+      disableSave() {
+        return !this.todo.title || !this.todo.description;
+      },
+    },
+    watch: {
+      editableTodo(val) {
+        this.todo = {...val}
+        if (this.edit === true && (this.todo.time - Date.now() > 0 )) {
+          const lastTime = this.todo.time - Date.now()
+          const hou = Math.floor(lastTime / 36e5)
+          const min = Math.floor((lastTime % 36e5) / 6e4)
+          const sec = Math.floor((lastTime % 6e4) / 1000)
+          this.time.h = hou
+          this.time.m = min
+          this.time.s = sec
+        }
+      }
+    },
     created() {
       this.todo = {...this.editableTodo}
     },
     methods: {
-      async editTodo() {
+      saveTodo() {
         const {h, m, s} = this.time
         let ms = s * 1000 + m * 6e4 + h * 36e5
         const formData = {
-          marker: this.marker + '.svg',
-          title: this.todo.title,
-          description: this.todo.description,
-          timer: this.todo.timer,
+          ...this.todo,
           time: ms + Date.now(),
-          id: this.todo.id
+          id: this.edit ? this.todo.id : undefined
         }
-        await this.$store.dispatch('editTodo', formData)
-        this.$emit('closeModal')
+        this.time = { h: 0, m: 0, s: 0 }
+        this.$emit('saveTodo', formData)
       },
       deleteTodo() {
-        this.$store.dispatch('deleteTodo', this.todo.id)
-        this.$emit('closeModal')
-      },
-      closeModal() {
-        this.$emit('closeModal')
+        this.$emit('deleteTodo', this.todo.id)
       },
       chooseColor(value) {
-        this.marker = value.target.alt
+        this.todo.marker = value.target.alt + '.svg'
       },
       addTimer() {
         this.todo.timer = true
       },
       removeTimer() {
         this.todo.timer = false
-        this.todo.time = null
+        this.time = { h: 0, m: 0, s: 0 }
       }
     }
   }
@@ -198,7 +223,6 @@
     width: 100%;
     padding: 25px 25px 30px;
     background: #FFFFFF;
-    box-shadow: 0 10px 50px rgba(40, 44, 66, 0.1);
     border-radius: 10px;
     &__header {
       display: flex;
@@ -245,7 +269,6 @@
     &__footer {
       display: flex;
       justify-content: flex-end;
-
     }
     &__create {
       width: 88px;
@@ -297,6 +320,11 @@
       background-color: #FFFFFF;
       border-radius: 50%;
       border-width: 0;
+    }
+    &__task-done {
+      margin-bottom: 20px;
+      color: #6DF77A;
+      font-size: 20px;
     }
     &__timer {
       display: flex;

@@ -9,7 +9,7 @@
         <p class="layout-main__team">team</p>
       </div>
       <button
-        @click="toLogin"
+        @click="logoutUser"
         class="layout-main__logout"
       >
         Log out
@@ -24,7 +24,6 @@
 <script>
   import Tile from "../components/main/Tile";
   import List from "../components/main/List";
-  import CreateTodo from "../components/main/CreateTodo";
   export default {
     name: 'LayoutMain',
     data: () => ({
@@ -34,17 +33,12 @@
     }),
     components: {
       Tile,
-      List,
-      CreateTodo
-    },
-    computed: {
-      todos() {
-        return this.$store.getters.todos
-      }
+      List
     },
     methods: {
-      toLogin() {
-        this.$store.dispatch('logout')
+      logoutUser() {
+        this.$store.dispatch('logoutUser')
+        this.$router.push('/login')
       },
     }
   }

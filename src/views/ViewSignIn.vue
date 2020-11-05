@@ -85,7 +85,11 @@
           return
         }
         const { name, email, password } = this
-        this.$store.dispatch('registration', { name, email, password })
+        this.$store.dispatch('createUser', { name, email, password })
+          .then(() => {
+            this.$router.push('/')
+          })
+          .catch(() => {})
       }
     }
   }

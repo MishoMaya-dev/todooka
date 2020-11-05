@@ -2,10 +2,11 @@
  <div class="todos">
    <TodosHeader
        :is-tile="isTile"
-       @showModal="isModalVisible = true"
+       @createTodo="createTodo"
        @tileView="isTile = $event"
    />
-   <div>
+   <Loader v-if="loading" class="absolute-center"/>
+   <div v-else>
      <div
          v-if="isTile"
          class="todos__elements-tile"
@@ -14,7 +15,8 @@
            v-for="todo in todos"
            :key="todo.id"
            :todo="todo"
-           @changeValue="editDone(todo.id)"
+           @changeValue="editDone"
+           @editTodo="editTodo(todo)"
        />
      </div>
      <div
@@ -25,14 +27,20 @@
            v-for="todo in todos"
            :key="todo.id"
            :todo="todo"
-           @changeValue="editDone(todo.id)"
+           @changeValue="editDone"
+           @editTodo="editTodo(todo)"
        />
      </div>
+     <div v-if="!todos.length" class="h3">No todos</div>
    </div>
    <transition name="fade">
-     <CreateTodo
+     <EditTodo
          v-show="isModalVisible"
+         :edit="edit"
+         :editableTodo="editableTodo"
          @closeModal="closeModal"
+         @saveTodo="saveTodo"
+         @deleteTodo="deleteTodo"
      />
    </transition>
  </div>
@@ -41,37 +49,76 @@
 <script>
 import Tile from "../components/main/Tile";
 import List from "../components/main/List";
-import CreateTodo from "../components/main/CreateTodo";
 import TodosHeader from "@/components/main/TodosHeader";
+import EditTodo from "../components/main/EditTodo";
+import { Todo } from "../store/todos";
+import Loader from "../components/loader";
+
 export default {
   name: 'ViewsTodos',
   data: () => ({
+    loading: false,
+    edit: false,
     isTile: true,
     isModalVisible: false,
+    editableTodo: new Todo(),
   }),
   components: {
+    EditTodo,
     TodosHeader,
     Tile,
     List,
-    CreateTodo
+    Loader
   },
   computed: {
     todos() {
       return this.$store.getters.todos
     }
   },
+  created() {
+    this.init();
+  },
   methods: {
-    toLogin() {
-      this.$store.dispatch('logout')
+    async init() {
+      try {
+        this.loading = true
+        await this.$store.dispatch('fetchTodos')
+      } finally {
+        this.loading = false
+      }
+    },
+    createTodo() {
+      this.isModalVisible = true
+    },
+    editTodo(todo) {
+      this.edit = true
+      this.editableTodo = todo
+      this.isModalVisible = true
+    },
+    saveTodo(formData) {
+      if (this.edit) {
+        this.$store.dispatch('editTodo', formData)
+      } else {
+        this.$store.dispatch('createTodo', formData)
+      }
+      this.closeModal()
+    },
+    deleteTodo(id) {
+      this.$store.dispatch('deleteTodo', id)
+      this.closeModal()
     },
     closeModal() {
       this.isModalVisible = false
+      setTimeout(() => {
+        this.edit = false
+        this.editableTodo = new Todo()
+      }, 500)
     },
     tileView() {
       this.isTile = true
     },
-    editDone(id) {
-      this.$store.dispatch('editDone', id)
+    editDone(todoData) {
+      this.$store.dispatch('editDone', todoData)
     }
   }
 }
@@ -85,6 +132,12 @@ export default {
     margin-right: 20px;
   }
 }
+.h3 {
+  display: flex;
+  justify-content: center;
+  font-size: 15px;
+  color: #B3B6C5;
+}
 
 @media screen and (min-width: 1024px) and (orientation: landscape) {
   .todos {
@@ -93,6 +146,9 @@ export default {
       grid-template-columns: repeat(auto-fill, minmax(335px, 1fr));
       grid-gap: 40px;
     }
+  }
+  .h3 {
+    font-size: 25px;
   }
 }
 </style>

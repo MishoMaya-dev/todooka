@@ -1,23 +1,21 @@
 import Vue from 'vue'
 import Vuex from 'vuex'
 import todos from './todos'
-import auth from '@/store/auth';
+import user from '@/store/user'
+import service from "./service";
 
 Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    pending: false,
   },
   mutations: {
-    setPending(state, status) {
-      state.pending = status;
-    }
   },
   actions: {
   },
   modules: {
-    auth,
-    todos
+    todos,
+    user,
+    service
   }
 })
